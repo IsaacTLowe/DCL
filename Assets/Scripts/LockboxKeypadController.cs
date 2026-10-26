@@ -63,6 +63,9 @@ public class LockboxKeypadController : MonoBehaviour
         if (isClosing)
             return;
 
+        if (ItemInspector.IsOpen)
+            return;
+
         if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
             return;
 
