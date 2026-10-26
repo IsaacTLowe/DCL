@@ -1,6 +1,7 @@
 using TMPro;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
@@ -28,6 +29,14 @@ public class LockboxKeypadController : MonoBehaviour
     [SerializeField, Min(0.05f)] private float cameraFocusDuration = 0.4f;
     [SerializeField, Range(20f, 90f)] private float cameraFocusFieldOfView = 38f;
 
+    [Header("Unlock")]
+    [Tooltip("How long ACCESS GRANTED stays on screen before the keypad closes.")]
+    [SerializeField, Min(0f)] private float closeDelayAfterUnlock = 0.75f;
+    [Tooltip("Runs once when the right code is entered. Hook LockboxDoor.Unlock here.")]
+    public UnityEvent onUnlocked;
+
+    public bool IsUnlocked => isUnlocked;
+
     private Camera playerCamera;
     private PlayerController playerController;
     private bool playerControllerWasEnabled;
@@ -36,6 +45,7 @@ public class LockboxKeypadController : MonoBehaviour
     private bool isClosing;
     private bool keypadInputEnabled;
     private bool hasStoredCameraPose;
+    private bool isUnlocked;
     private Vector3 storedCameraPosition;
     private Quaternion storedCameraRotation;
     private float storedCameraFieldOfView;
@@ -61,6 +71,10 @@ public class LockboxKeypadController : MonoBehaviour
         }
 
         if (isClosing)
+            return;
+
+        // Once it's open, clicks on the box belong to the door / items inside, not the keypad.
+        if (isUnlocked)
             return;
 
         if (ItemInspector.IsOpen)
@@ -107,7 +121,19 @@ public class LockboxKeypadController : MonoBehaviour
         {
             enteredCode = string.Empty;
             RefreshCodeDisplay();
+            return;
         }
+
+        isUnlocked = true;
+        SetKeypadInputEnabled(false);
+        onUnlocked?.Invoke();
+        StartCoroutine(CloseAfterUnlock());
+    }
+
+    private IEnumerator CloseAfterUnlock()
+    {
+        yield return new WaitForSecondsRealtime(closeDelayAfterUnlock);
+        CloseKeypad();
     }
 
     /// <summary>Bound to the close button in the keypad Canvas.</summary>
