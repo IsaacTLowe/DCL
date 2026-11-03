@@ -6,10 +6,10 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Room timer. Counts down from startTime as soon as the scene starts and stops when the
-/// lockbox door is fully opened. If it reaches zero, shows a message and restarts the room.
-/// Put it on an empty GameObject in the scene. It finds the LockboxDoor and builds its own UI,
-/// so nothing needs wiring. Call Stop() from any UnityEvent to end the timer some other way.
+/// Room timer. Counts down from startTime as soon as the scene starts. The player wins when they
+/// inspect the win item (the book) and close the inspect view, after the lockbox door is open:
+/// the clock stops and the win message shows. At zero, shows a message and restarts the room.
+/// Put it on an empty GameObject and drag the book into Win Item. It builds its own UI.
 /// </summary>
 public class GameController : MonoBehaviour
 {
@@ -17,8 +17,13 @@ public class GameController : MonoBehaviour
     [SerializeField, Min(1f)] private float startTime = 60f;
     [Tooltip("Below this many seconds the clock turns red.")]
     [SerializeField, Min(0f)] private float warningTime = 10f;
+    [Header("Win condition")]
+    [Tooltip("The item the player must inspect and then close (Esc / X) to win: the book in the lockbox.")]
+    [SerializeField] private InspectableItem winItem;
     [Tooltip("Optional. Leave empty and the first LockboxDoor in the scene is used.")]
     [SerializeField] private LockboxDoor lockboxDoor;
+    [Tooltip("Only count the win if the lockbox door is fully open, so the book can't be reached some other way.")]
+    [SerializeField] private bool requireDoorOpen = true;
 
     [Header("Win")]
     [Tooltip("{0} is replaced with the time left, e.g. 0:23.")]
@@ -54,10 +59,11 @@ public class GameController : MonoBehaviour
 
         if (lockboxDoor == null)
             lockboxDoor = FindAnyObjectByType<LockboxDoor>();
-        if (lockboxDoor != null)
-            lockboxDoor.onFullyOpened.AddListener(Win);
+
+        if (winItem != null)
+            winItem.onInspectClosed.AddListener(OnWinItemClosed);
         else
-            Debug.LogWarning("GameController: no LockboxDoor found, so the timer will never stop on its own.", this);
+            Debug.LogWarning("GameController: Win Item is empty. Drag the book into it, or the player can never win.", this);
 
         TimeRemaining = startTime;
         IsRunning = true;
@@ -66,8 +72,17 @@ public class GameController : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (lockboxDoor != null)
-            lockboxDoor.onFullyOpened.RemoveListener(Win);
+        if (winItem != null)
+            winItem.onInspectClosed.RemoveListener(OnWinItemClosed);
+    }
+
+    /// <summary>Runs when the player closes the inspect view on the win item.</summary>
+    private void OnWinItemClosed()
+    {
+        if (requireDoorOpen && lockboxDoor != null && !lockboxDoor.IsFullyOpen)
+            return;
+
+        Win();
     }
 
     private void Update()
@@ -84,7 +99,7 @@ public class GameController : MonoBehaviour
             TimeUp();
     }
 
-    /// <summary>Stops the clock and shows the win message. Hooked to LockboxDoor.onFullyOpened automatically.</summary>
+    /// <summary>Stops the clock and shows the win message. Called when the win item's inspect view closes.</summary>
     public void Win()
     {
         if (!IsRunning)

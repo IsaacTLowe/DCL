@@ -572,12 +572,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameController
   startTime: 60
   warningTime: 10
+  winItem: {fileID: 1210117854}
   lockboxDoor: {fileID: 0}
+  requireDoorOpen: 1
+  winMessage: 'You escaped!
+
+    <size=50%>{0} left</size>'
+  winMessageDuration: 4
+  winColor: {r: 1, g: 0.8, b: 0.3, a: 1}
   timeUpMessage: Out of time
   restartDelay: 3
   restartOnTimeUp: 1
   normalColor: {r: 1, g: 1, b: 1, a: 0.9}
   warningColor: {r: 0.9, g: 0.15, b: 0.1, a: 1}
+  onWin:
+    m_PersistentCalls:
+      m_Calls: []
   onTimeUp:
     m_PersistentCalls:
       m_Calls: []
