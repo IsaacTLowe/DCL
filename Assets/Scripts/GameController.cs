@@ -20,6 +20,13 @@ public class GameController : MonoBehaviour
     [Tooltip("Optional. Leave empty and the first LockboxDoor in the scene is used.")]
     [SerializeField] private LockboxDoor lockboxDoor;
 
+    [Header("Win")]
+    [Tooltip("{0} is replaced with the time left, e.g. 0:23.")]
+    [SerializeField] private string winMessage = "You escaped!\n<size=50%>{0} left</size>";
+    [Tooltip("How long the win message stays up. 0 = stays until the scene changes.")]
+    [SerializeField, Min(0f)] private float winMessageDuration = 4f;
+    [SerializeField] private Color winColor = new Color(1f, 0.8f, 0.3f, 1f);
+
     [Header("Out of time")]
     [SerializeField] private string timeUpMessage = "Out of time";
     [SerializeField, Min(0f)] private float restartDelay = 3f;
@@ -31,6 +38,7 @@ public class GameController : MonoBehaviour
     [SerializeField] private Color warningColor = new Color(0.9f, 0.15f, 0.1f, 1f);
 
     [Header("Events")]
+    public UnityEvent onWin;
     public UnityEvent onTimeUp;
     public UnityEvent onStopped;
 
@@ -47,7 +55,7 @@ public class GameController : MonoBehaviour
         if (lockboxDoor == null)
             lockboxDoor = FindAnyObjectByType<LockboxDoor>();
         if (lockboxDoor != null)
-            lockboxDoor.onFullyOpened.AddListener(Stop);
+            lockboxDoor.onFullyOpened.AddListener(Win);
         else
             Debug.LogWarning("GameController: no LockboxDoor found, so the timer will never stop on its own.", this);
 
@@ -59,7 +67,7 @@ public class GameController : MonoBehaviour
     private void OnDestroy()
     {
         if (lockboxDoor != null)
-            lockboxDoor.onFullyOpened.RemoveListener(Stop);
+            lockboxDoor.onFullyOpened.RemoveListener(Win);
     }
 
     private void Update()
@@ -76,7 +84,31 @@ public class GameController : MonoBehaviour
             TimeUp();
     }
 
-    /// <summary>Stops the clock where it is. Hooked to LockboxDoor.onFullyOpened automatically.</summary>
+    /// <summary>Stops the clock and shows the win message. Hooked to LockboxDoor.onFullyOpened automatically.</summary>
+    public void Win()
+    {
+        if (!IsRunning)
+            return;   // already won, or time already ran out
+
+        Stop();
+
+        int seconds = Mathf.CeilToInt(TimeRemaining);
+        messageText.text = string.Format(winMessage, $"{seconds / 60}:{seconds % 60:00}");
+        messageText.color = winColor;
+        messageText.gameObject.SetActive(true);
+        onWin?.Invoke();
+
+        if (winMessageDuration > 0f)
+            StartCoroutine(HideMessageAfter(winMessageDuration));
+    }
+
+    private IEnumerator HideMessageAfter(float delay)
+    {
+        yield return new WaitForSecondsRealtime(delay);
+        messageText.gameObject.SetActive(false);
+    }
+
+    /// <summary>Stops the clock where it is, with no message. Call from any UnityEvent.</summary>
     public void Stop()
     {
         if (!IsRunning)
@@ -91,6 +123,7 @@ public class GameController : MonoBehaviour
     {
         IsRunning = false;
         messageText.text = timeUpMessage;
+        messageText.color = warningColor;
         messageText.gameObject.SetActive(true);
         onTimeUp?.Invoke();
 
