@@ -1,0 +1,149 @@
+{
+  "note": "Solved layout for a letter 1 unit wide, pieces as children of LetterPuzzle. Scale the parent to resize.",
+  "pieces": [
+    {
+      "piece": "piece_01.png",
+      "pixel_rect": [
+        0,
+        0,
+        782,
+        678
+      ],
+      "unity_localPosition": [
+        -0.2471,
+        0.0,
+        0.4276
+      ],
+      "unity_localRotation_euler": [
+        90,
+        0,
+        0
+      ],
+      "unity_localScale": [
+        0.5058,
+        0.4386,
+        1
+      ]
+    },
+    {
+      "piece": "piece_02.png",
+      "pixel_rect": [
+        743,
+        0,
+        803,
+        678
+      ],
+      "unity_localPosition": [
+        0.2403,
+        0.0,
+        0.4276
+      ],
+      "unity_localRotation_euler": [
+        90,
+        0,
+        0
+      ],
+      "unity_localScale": [
+        0.5194,
+        0.4386,
+        1
+      ]
+    },
+    {
+      "piece": "piece_03.png",
+      "pixel_rect": [
+        0,
+        635,
+        804,
+        728
+      ],
+      "unity_localPosition": [
+        -0.24,
+        0.0,
+        0.0006
+      ],
+      "unity_localRotation_euler": [
+        90,
+        0,
+        0
+      ],
+      "unity_localScale": [
+        0.5201,
+        0.4709,
+        1
+      ]
+    },
+    {
+      "piece": "piece_04.png",
+      "pixel_rect": [
+        765,
+        655,
+        781,
+        689
+      ],
+      "unity_localPosition": [
+        0.2474,
+        0.0,
+        0.0003
+      ],
+      "unity_localRotation_euler": [
+        90,
+        0,
+        0
+      ],
+      "unity_localScale": [
+        0.5052,
+        0.4457,
+        1
+      ]
+    },
+    {
+      "piece": "piece_05.png",
+      "pixel_rect": [
+        0,
+        1331,
+        803,
+        669
+      ],
+      "unity_localPosition": [
+        -0.2403,
+        0.0,
+        -0.4305
+      ],
+      "unity_localRotation_euler": [
+        90,
+        0,
+        0
+      ],
+      "unity_localScale": [
+        0.5194,
+        0.4327,
+        1
+      ]
+    },
+    {
+      "piece": "piece_06.png",
+      "pixel_rect": [
+        754,
+        1310,
+        792,
+        690
+      ],
+      "unity_localPosition": [
+        0.2439,
+        0.0,
+        -0.4237
+      ],
+      "unity_localRotation_euler": [
+        90,
+        0,
+        0
+      ],
+      "unity_localScale": [
+        0.5123,
+        0.4463,
+        1
+      ]
+    }
+  ]
+}
