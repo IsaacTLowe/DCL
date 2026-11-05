@@ -76,6 +76,8 @@ mono_crash.*
 *.unitypackage
 *.unitypackage.meta
 *.app
+/Data/
+/Vigil v0.01/
 
 # Crashlytics generated file
 crashlytics-build.properties
