@@ -6,6 +6,8 @@ public class Polaroid : MonoBehaviour
 {
     [SerializeField] private string visibleText = "";
     [SerializeField] private string hiddenText = "";
+    [Tooltip("Color of the hidden number when the UV lamp reveals it.")]
+    [SerializeField] private Color hiddenColor = new Color(0.45f, 1f, 0.9f, 1f);
     [SerializeField] private Texture photo;
     [SerializeField] private float revealDistance = 1.2f;
     [SerializeField] private float fullRevealDistance = 0.7f;
@@ -70,7 +72,10 @@ public class Polaroid : MonoBehaviour
         if (visibleNumber != null)
             visibleNumber.text = visibleText;
         if (hiddenNumber != null)
+        {
             hiddenNumber.text = hiddenText;
+            hiddenNumber.color = hiddenColor;   // sets alpha to 1 too; Awake/Update fade it back
+        }
     }
 
     private void ApplyPhoto()

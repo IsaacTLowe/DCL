@@ -6,10 +6,10 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 /// <summary>
-/// Room timer. Counts down from startTime as soon as the scene starts. The player wins when they
-/// inspect the win item (the book) and close the inspect view, after the lockbox door is open:
-/// the clock stops and the win message shows. At zero, shows a message and restarts the room.
-/// Put it on an empty GameObject and drag the book into Win Item. It builds its own UI.
+/// Room timer. Counts down from startTime as soon as the scene starts. Win() stops the clock and
+/// shows the win message: ExitDoor calls it when the player opens the unlocked exit door.
+/// (Optionally, closing the inspect view on a Win Item can also win; leave Win Item empty to turn that off.)
+/// At zero, shows a message and restarts the room. Put it on an empty GameObject. It builds its own UI.
 /// </summary>
 public class GameController : MonoBehaviour
 {
@@ -18,7 +18,7 @@ public class GameController : MonoBehaviour
     [Tooltip("Below this many seconds the clock turns red.")]
     [SerializeField, Min(0f)] private float warningTime = 10f;
     [Header("Win condition")]
-    [Tooltip("The item the player must inspect and then close (Esc / X) to win: the book in the lockbox.")]
+    [Tooltip("Optional. Inspecting this item and closing the view (Esc / X) also wins. Leave empty when the exit door is the win.")]
     [SerializeField] private InspectableItem winItem;
     [Tooltip("Optional. Leave empty and the first LockboxDoor in the scene is used.")]
     [SerializeField] private LockboxDoor lockboxDoor;
@@ -62,8 +62,6 @@ public class GameController : MonoBehaviour
 
         if (winItem != null)
             winItem.onInspectClosed.AddListener(OnWinItemClosed);
-        else
-            Debug.LogWarning("GameController: Win Item is empty. Drag the book into it, or the player can never win.", this);
 
         TimeRemaining = startTime;
         IsRunning = true;
@@ -99,7 +97,7 @@ public class GameController : MonoBehaviour
             TimeUp();
     }
 
-    /// <summary>Stops the clock and shows the win message. Called when the win item's inspect view closes.</summary>
+    /// <summary>Stops the clock and shows the win message. Called by ExitDoor when it opens.</summary>
     public void Win()
     {
         if (!IsRunning)
