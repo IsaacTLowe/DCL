@@ -24,7 +24,7 @@ public class HoldableItem : MonoBehaviour
     {
         if (IsHeld)
         {
-            SetHidden(LetterPuzzle.IsFocused || ItemInspector.IsOpen);
+            SetHidden(LetterPuzzle.IsFocused || ItemInspector.IsOpen || LockboxKeypadController.Active != null);
             return;
         }
 

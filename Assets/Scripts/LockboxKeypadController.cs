@@ -37,6 +37,9 @@ public class LockboxKeypadController : MonoBehaviour
 
     public bool IsUnlocked => isUnlocked;
 
+    /// <summary>The keypad that's open right now, or null. Only one keypad can be open at a time.</summary>
+    public static LockboxKeypadController Active { get; private set; }
+
     private Camera playerCamera;
     private PlayerController playerController;
     private bool playerControllerWasEnabled;
@@ -62,6 +65,12 @@ public class LockboxKeypadController : MonoBehaviour
         SetKeypadInputEnabled(false);
     }
 
+    private void OnDisable()
+    {
+        if (Active == this)
+            Active = null;
+    }
+
     private void Update()
     {
         if (isOpen)
@@ -77,7 +86,8 @@ public class LockboxKeypadController : MonoBehaviour
         if (isUnlocked)
             return;
 
-        if (ItemInspector.IsOpen)
+        // Another keypad, the inspector or the letter puzzle already owns the mouse.
+        if (Active != null || ItemInspector.IsOpen || LetterPuzzle.IsFocused)
             return;
 
         if (Mouse.current == null || !Mouse.current.leftButton.wasPressedThisFrame)
@@ -189,6 +199,7 @@ public class LockboxKeypadController : MonoBehaviour
         }
 
         isOpen = true;
+        Active = this;
         SetKeypadInputEnabled(false);
         enteredCode = string.Empty;
         SetStatus("ENTER CODE");
@@ -294,6 +305,9 @@ public class LockboxKeypadController : MonoBehaviour
 
     private void ResumeGameplay()
     {
+        if (Active == this)
+            Active = null;
+
         if (playerController != null && playerControllerWasEnabled)
             playerController.enabled = true;
 
