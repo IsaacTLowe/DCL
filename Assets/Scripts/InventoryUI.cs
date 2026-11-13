@@ -1,10 +1,11 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
 /// Runtime-created inventory bar. Tab toggles the bar while the player is exploring.
-/// The slots are intentionally empty placeholders for a future item system.
+/// Each slot shows the name of an item in PlayerInventory (for now just text, no icons).
 /// </summary>
 public class InventoryUI : MonoBehaviour
 {
@@ -15,6 +16,7 @@ public class InventoryUI : MonoBehaviour
     private static InventoryUI instance;
 
     private GameObject inventoryCanvas;
+    private readonly TMP_Text[] slotLabels = new TMP_Text[SlotCount];
     private PlayerController playerController;
     private bool playerControllerWasEnabled;
     private bool isOpen;
@@ -39,6 +41,28 @@ public class InventoryUI : MonoBehaviour
         }
 
         instance = this;
+        PlayerInventory.Changed += Refresh;
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this)
+        {
+            PlayerInventory.Changed -= Refresh;
+            instance = null;
+        }
+    }
+
+    private void Refresh()
+    {
+        if (inventoryCanvas == null)
+            return;
+
+        for (int index = 0; index < SlotCount; index++)
+        {
+            bool filled = index < PlayerInventory.Items.Count;
+            slotLabels[index].text = filled ? PlayerInventory.Items[index].DisplayName : "";
+        }
     }
 
     private void Update()
@@ -76,6 +100,7 @@ public class InventoryUI : MonoBehaviour
             return;
 
         BuildIfNeeded();
+        Refresh();
 
         playerControllerWasEnabled = playerController.enabled;
         playerController.enabled = false;
@@ -147,6 +172,24 @@ public class InventoryUI : MonoBehaviour
             Outline outline = slot.GetComponent<Outline>();
             outline.effectColor = new Color(1f, 1f, 1f, 0.45f);
             outline.effectDistance = new Vector2(1f, -1f);
+
+            GameObject label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI));
+            label.transform.SetParent(slot.transform, false);
+            RectTransform labelRect = label.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(4f, 4f);
+            labelRect.offsetMax = new Vector2(-4f, -4f);
+
+            TextMeshProUGUI labelText = label.GetComponent<TextMeshProUGUI>();
+            labelText.fontSize = 13f;
+            labelText.enableAutoSizing = true;
+            labelText.fontSizeMin = 9f;
+            labelText.fontSizeMax = 15f;
+            labelText.alignment = TextAlignmentOptions.Center;
+            labelText.color = Color.white;
+            labelText.raycastTarget = false;
+            slotLabels[index] = labelText;
         }
 
         inventoryCanvas.SetActive(false);
