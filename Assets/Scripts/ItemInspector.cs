@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -10,6 +12,8 @@ using UnityEngine.UI;
 /// Full-screen "look at the item" view. A copy of the item is rendered by its own camera
 /// into a RenderTexture shown on a letterboxed, dimmed UI, so the item is always the main
 /// thing on screen. Drag to spin it in 3D, scroll to zoom, Esc or the X button to leave.
+/// Items with InspectPart children (latches, screws, tools in a box) can be clicked while
+/// inspected: a click on a part uses it, a click anywhere else starts a drag.
 /// You don't need to put this in the scene: InspectableItem creates one when needed.
 /// Only add it to a GameObject yourself if you want to tweak the settings below.
 /// </summary>
@@ -34,6 +38,11 @@ public class ItemInspector : MonoBehaviour
     [SerializeField, Min(0.1f)] private float minZoom = 0.5f;              // < 1 = closer
     [SerializeField, Min(0.1f)] private float maxZoom = 2f;                // > 1 = farther
 
+    [Header("Clickable parts")]
+    [SerializeField] private Color partHighlightColor = new Color(1f, 0.92f, 0.65f);
+    [SerializeField, Range(0f, 1f)] private float partHighlightAmount = 0.45f;
+    [SerializeField, Min(0.1f)] private float messageDuration = 2.5f;
+
     [Header("Stage")]
     [Tooltip("Where the inspected copy lives. Far from the level so the player camera never sees it.")]
     [SerializeField] private Vector3 stagePosition = new Vector3(0f, -5000f, 0f);
@@ -54,6 +63,7 @@ public class ItemInspector : MonoBehaviour
     private RawImage view;
     private TMP_Text titleText;
     private TMP_Text descriptionText;
+    private TMP_Text hintText;
 
     // Current session
     private InspectableItem currentItem;
@@ -68,6 +78,32 @@ public class ItemInspector : MonoBehaviour
     private int openedFrame;
     private PlayerController playerController;
     private bool playerControllerWasEnabled;
+
+    // Clickable parts (only when the copy is a copy of the item itself, not a separate inspectModel)
+    private bool copyMirrorsItem;
+    private bool currentHasParts;
+    private readonly Dictionary<Collider, InspectPart> copyPartColliders = new Dictionary<Collider, InspectPart>();
+    private InspectPart hoveredPart;
+    private readonly List<Renderer> highlightedRenderers = new List<Renderer>();
+    private MaterialPropertyBlock highlightBlock;
+    private float messageTimer;
+
+    private const string DefaultHint =
+        "Drag to rotate   |   Scroll to zoom   |   Q / E to roll   |   R to reset   |   Esc to close";
+    private const string PartsHint =
+        "Click parts to use them   |   Drag to rotate   |   Scroll to zoom   |   R to reset   |   Esc to close";
+
+    // Animations that play on the real object and on the inspected copy at the same time.
+    private class MirroredTween
+    {
+        public Transform original;
+        public int[] path;
+        public float duration;
+        public float elapsed;
+        public Action<Transform, float> apply;
+        public Action onDone;
+    }
+    private readonly List<MirroredTween> tweens = new List<MirroredTween>();
 
     public static ItemInspector GetOrCreate()
     {
@@ -119,8 +155,9 @@ public class ItemInspector : MonoBehaviour
         FrameCopy(item.GetStartRotation(viewer));
 
         titleText.text = item.DisplayName;
-        descriptionText.text = item.Description;
-        descriptionText.gameObject.SetActive(!string.IsNullOrEmpty(item.Description));
+        RestoreDescription();
+        messageTimer = 0f;
+        hintText.text = currentHasParts ? PartsHint : DefaultHint;
 
         playerController = FindAnyObjectByType<PlayerController>();
         if (playerController != null)
@@ -164,6 +201,23 @@ public class ItemInspector : MonoBehaviour
         inspectCamera.enabled = false;
         keyLight.enabled = false;
 
+        // Snap unfinished animations to their end pose so the real object is left in the right state.
+        // (Anything they start in onDone runs instantly now, because we're closed.)
+        while (tweens.Count > 0)
+        {
+            MirroredTween tween = tweens[0];
+            tweens.RemoveAt(0);
+            if (tween.original != null)
+                tween.apply(tween.original, 1f);
+            tween.onDone?.Invoke();
+        }
+
+        ClearHighlight();
+        copyPartColliders.Clear();
+        currentHasParts = false;
+        copyMirrorsItem = false;
+        messageTimer = 0f;
+
         if (currentCopy != null)
             Destroy(currentCopy);
         currentCopy = null;
@@ -198,6 +252,8 @@ public class ItemInspector : MonoBehaviour
         if (state != State.Closing)
             HandleInput(dt);
 
+        UpdateTweens(dt);
+        UpdateMessage(dt);
         ApplySpinAndZoom(dt);
     }
 
@@ -248,13 +304,26 @@ public class ItemInspector : MonoBehaviour
         if (mouse == null || Time.frameCount == openedFrame) // ignore the click that opened us
             return;
 
+        Vector2 mousePosition = mouse.position.ReadValue();
+        InspectPart partUnderMouse = dragging || PointerOverButton() ? null : PartUnderMouse(mousePosition);
+
         if (mouse.leftButton.wasPressedThisFrame && !PointerOverButton())
         {
-            dragging = true;
-            spinVelocity = Vector2.zero;
+            if (partUnderMouse != null)
+            {
+                UsePart(partUnderMouse);
+                partUnderMouse = null;   // it may have just stopped being clickable
+            }
+            else
+            {
+                dragging = true;
+                spinVelocity = Vector2.zero;
+            }
         }
         if (!mouse.leftButton.isPressed)
             dragging = false;
+
+        SetHoveredPart(dragging ? null : partUnderMouse);
 
         if (dragging)
         {
@@ -322,6 +391,11 @@ public class ItemInspector : MonoBehaviour
     private GameObject CreateDisplayCopy(InspectableItem item)
     {
         GameObject source = item.InspectModel != null ? item.InspectModel : item.gameObject;
+        copyMirrorsItem = source == item.gameObject;
+        InspectPart[] parts = copyMirrorsItem
+            ? item.GetComponentsInChildren<InspectPart>(true)
+            : Array.Empty<InspectPart>();
+        currentHasParts = parts.Length > 0;
 
         // Instantiate under an inactive parent so none of the copy's scripts wake up
         // (otherwise a second InspectableItem / puzzle script would start running).
@@ -329,7 +403,21 @@ public class ItemInspector : MonoBehaviour
         holder.SetActive(false);
 
         GameObject copy = Instantiate(source, holder.transform);
-        StripGameplayComponents(copy);
+
+        // Map each part's colliders in the copy back to the real part. Parents come before
+        // children in the list, so a part inside another part wins for its own colliders.
+        copyPartColliders.Clear();
+        foreach (InspectPart part in parts)
+        {
+            Transform copyPart = Resolve(copy.transform, GetPath(item.transform, part.transform));
+            if (copyPart == null)
+                continue;
+            foreach (Collider col in copyPart.GetComponentsInChildren<Collider>(true))
+                copyPartColliders[col] = part;
+        }
+
+        // Items with parts keep all their colliders, so a closed lid still blocks clicks on what's inside.
+        StripGameplayComponents(copy, keepColliders: currentHasParts);
 
         copy.transform.SetParent(pivot, false);
         copy.transform.localPosition = Vector3.zero;
@@ -341,7 +429,7 @@ public class ItemInspector : MonoBehaviour
         return copy;
     }
 
-    private static void StripGameplayComponents(GameObject root)
+    private static void StripGameplayComponents(GameObject root, bool keepColliders)
     {
         // Keep TextMeshPro so notes / labels on items still show their text.
         foreach (MonoBehaviour behaviour in root.GetComponentsInChildren<MonoBehaviour>(true))
@@ -350,8 +438,9 @@ public class ItemInspector : MonoBehaviour
 
         foreach (Joint joint in root.GetComponentsInChildren<Joint>(true))
             DestroyImmediate(joint);
-        foreach (Collider col in root.GetComponentsInChildren<Collider>(true))
-            DestroyImmediate(col);
+        if (!keepColliders)
+            foreach (Collider col in root.GetComponentsInChildren<Collider>(true))
+                DestroyImmediate(col);
         foreach (Rigidbody body in root.GetComponentsInChildren<Rigidbody>(true))
             DestroyImmediate(body);
         foreach (AudioSource audio in root.GetComponentsInChildren<AudioSource>(true))
@@ -396,6 +485,215 @@ public class ItemInspector : MonoBehaviour
         inspectCamera.nearClipPlane = Mathf.Max(0.01f, radius * 0.01f);
         inspectCamera.farClipPlane = fitDistance * maxZoom + radius * 2f;
         keyLight.transform.localPosition = new Vector3(0.5f, 0.6f, 0f) * fitDistance;
+    }
+
+    // ------------------------------------------------------------------ clickable parts
+
+    /// <summary>
+    /// Plays an animation on a child of the item being inspected AND on its copy in the inspect view.
+    /// apply(transform, t) sets the pose for t in 0..1 (eased). It's called on both, so compute the
+    /// pose from values captured before the call, not from the transform's current pose.
+    /// If the item isn't being inspected, it jumps straight to the end.
+    /// </summary>
+    public static void AnimateMirrored(Transform original, float duration, Action<Transform, float> apply, Action onDone = null)
+    {
+        if (original == null || apply == null)
+            return;
+
+        ItemInspector inspector = Instance;
+        bool live = inspector != null && inspector.state != State.Closed && inspector.copyMirrorsItem
+                    && inspector.currentItem != null && original.IsChildOf(inspector.currentItem.transform);
+        if (!live || duration <= 0f)
+        {
+            apply(original, 1f);
+            onDone?.Invoke();
+            return;
+        }
+
+        inspector.tweens.Add(new MirroredTween
+        {
+            original = original,
+            path = GetPath(inspector.currentItem.transform, original),
+            duration = duration,
+            apply = apply,
+            onDone = onDone,
+        });
+    }
+
+    /// <summary>Shows or hides a child of the item, and its copy in the inspect view if it's open.</summary>
+    public static void SetActiveMirrored(Transform original, bool active)
+    {
+        if (original == null)
+            return;
+
+        original.gameObject.SetActive(active);
+        if (Instance != null)
+        {
+            Transform copy = Instance.CopyOf(original);
+            if (copy != null)
+                copy.gameObject.SetActive(active);
+        }
+    }
+
+    /// <summary>Shows a short message in place of the item's description for a few seconds.</summary>
+    public static void ShowMessage(string message)
+    {
+        if (Instance == null || Instance.state == State.Closed || string.IsNullOrEmpty(message))
+            return;
+
+        Instance.descriptionText.text = message;
+        Instance.descriptionText.gameObject.SetActive(true);
+        Instance.messageTimer = Instance.messageDuration;
+    }
+
+    private void RestoreDescription()
+    {
+        string description = currentItem != null ? currentItem.Description : "";
+        descriptionText.text = description;
+        descriptionText.gameObject.SetActive(!string.IsNullOrEmpty(description));
+    }
+
+    private void UpdateMessage(float dt)
+    {
+        if (messageTimer <= 0f)
+            return;
+        messageTimer -= dt;
+        if (messageTimer <= 0f)
+            RestoreDescription();
+    }
+
+    private void UpdateTweens(float dt)
+    {
+        // Index loop on purpose: onDone may start new tweens, which get appended and run next.
+        for (int i = 0; i < tweens.Count; i++)
+        {
+            MirroredTween tween = tweens[i];
+            tween.elapsed += dt;
+            float t = Mathf.Clamp01(tween.elapsed / tween.duration);
+            float eased = Mathf.SmoothStep(0f, 1f, t);
+
+            if (tween.original != null)
+                tween.apply(tween.original, eased);
+            Transform copy = currentCopy != null ? Resolve(currentCopy.transform, tween.path) : null;
+            if (copy != null)
+                tween.apply(copy, eased);
+
+            if (t >= 1f)
+            {
+                tweens.RemoveAt(i);
+                i--;
+                tween.onDone?.Invoke();
+            }
+        }
+    }
+
+    private void UsePart(InspectPart part)
+    {
+        part.TryUse(out string message);
+        if (!string.IsNullOrEmpty(message))
+            ShowMessage(message);
+    }
+
+    /// <summary>The clickable part under the mouse, or null. Only the nearest thing on the copy counts.</summary>
+    private InspectPart PartUnderMouse(Vector2 screenPosition)
+    {
+        if (!currentHasParts || currentCopy == null)
+            return null;
+
+        // The view is a full-screen RawImage of a screen-sized RenderTexture, so screen pixels
+        // map 1:1 onto the inspect camera's pixels.
+        Physics.SyncTransforms();
+        Ray ray = inspectCamera.ScreenPointToRay(screenPosition);
+        RaycastHit[] hits = Physics.RaycastAll(ray, inspectCamera.farClipPlane, ~0, QueryTriggerInteraction.Collide);
+
+        float nearest = float.MaxValue;
+        Collider nearestCollider = null;
+        Transform copyRoot = currentCopy.transform;
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.distance < nearest && hit.collider.transform.IsChildOf(copyRoot))
+            {
+                nearest = hit.distance;
+                nearestCollider = hit.collider;
+            }
+        }
+
+        if (nearestCollider != null && copyPartColliders.TryGetValue(nearestCollider, out InspectPart part)
+            && part != null && part.Interactable)
+            return part;
+        return null;
+    }
+
+    private void SetHoveredPart(InspectPart part)
+    {
+        if (part == hoveredPart)
+            return;
+
+        ClearHighlight();
+        hoveredPart = part;
+        if (part == null)
+            return;
+
+        Transform copy = CopyOf(part.transform);
+        if (copy == null)
+            return;
+
+        highlightBlock ??= new MaterialPropertyBlock();
+        foreach (Renderer r in copy.GetComponentsInChildren<Renderer>())
+        {
+            Material material = r.sharedMaterial;
+            Color baseColor = material != null && material.HasProperty("_BaseColor")
+                ? material.GetColor("_BaseColor")
+                : Color.white;
+
+            r.GetPropertyBlock(highlightBlock);
+            highlightBlock.SetColor("_BaseColor", Color.Lerp(baseColor, partHighlightColor, partHighlightAmount));
+            r.SetPropertyBlock(highlightBlock);
+            highlightedRenderers.Add(r);
+        }
+    }
+
+    private void ClearHighlight()
+    {
+        foreach (Renderer r in highlightedRenderers)
+            if (r != null)
+                r.SetPropertyBlock(null);
+        highlightedRenderers.Clear();
+        hoveredPart = null;
+    }
+
+    private Transform CopyOf(Transform original)
+    {
+        if (!copyMirrorsItem || currentItem == null || currentCopy == null || original == null)
+            return null;
+        if (!original.IsChildOf(currentItem.transform))
+            return null;
+        return Resolve(currentCopy.transform, GetPath(currentItem.transform, original));
+    }
+
+    /// <summary>Sibling indices from root down to t. The copy has the same hierarchy as the original.</summary>
+    private static int[] GetPath(Transform root, Transform t)
+    {
+        var path = new List<int>();
+        while (t != null && t != root)
+        {
+            path.Add(t.GetSiblingIndex());
+            t = t.parent;
+        }
+        path.Reverse();
+        return path.ToArray();
+    }
+
+    private static Transform Resolve(Transform root, int[] path)
+    {
+        Transform t = root;
+        foreach (int index in path)
+        {
+            if (t == null || index >= t.childCount)
+                return null;
+            t = t.GetChild(index);
+        }
+        return t;
     }
 
     // ------------------------------------------------------------------ setup
@@ -489,9 +787,9 @@ public class ItemInspector : MonoBehaviour
             new Vector2(0.1f, 1f - barHeight), new Vector2(0.9f, 1f));
         descriptionText = CreateText("Description", root, 28f, FontStyles.Normal, new Color(1f, 1f, 1f, 0.85f),
             new Vector2(0.15f, barHeight * 0.4f), new Vector2(0.85f, barHeight));
-        TMP_Text hint = CreateText("ControlsHint", root, 20f, FontStyles.Normal, new Color(1f, 1f, 1f, 0.45f),
+        hintText = CreateText("ControlsHint", root, 20f, FontStyles.Normal, new Color(1f, 1f, 1f, 0.45f),
             Vector2.zero, new Vector2(1f, barHeight * 0.4f));
-        hint.text = "Drag to rotate   |   Scroll to zoom   |   Q / E to roll   |   R to reset   |   Esc to close";
+        hintText.text = DefaultHint;
 
         GameObject viewObject = new GameObject("ItemView", typeof(RectTransform), typeof(RawImage));
         viewObject.transform.SetParent(root, false);
