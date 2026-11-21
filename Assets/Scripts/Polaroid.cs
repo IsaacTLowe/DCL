@@ -9,8 +9,8 @@ public class Polaroid : MonoBehaviour
     [Tooltip("Color of the hidden number when the UV lamp reveals it.")]
     [SerializeField] private Color hiddenColor = new Color(0.45f, 1f, 0.9f, 1f);
     [SerializeField] private Texture photo;
-    [SerializeField] private float revealDistance = 1.2f;
-    [SerializeField] private float fullRevealDistance = 0.7f;
+    [SerializeField] private float revealDistance = 1.6f;
+    [SerializeField] private float fullRevealDistance = 1f;
     [SerializeField] private float fadeTime = 0.3f;
 
     [SerializeField] private TMP_Text visibleNumber;

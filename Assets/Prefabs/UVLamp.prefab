@@ -43,8 +43,8 @@ Light:
   serializedVersion: 13
   m_Type: 0
   m_Color: {r: 0.55, g: 0.3, b: 1, a: 1}
-  m_Intensity: 3
-  m_Range: 4
+  m_Intensity: 4
+  m_Range: 5.5
   m_SpotAngle: 45
   m_InnerSpotAngle: 21.80208
   m_CookieSize2D: {x: 0.5, y: 0.5}
@@ -481,3 +481,7 @@ MonoBehaviour:
   origin: {fileID: 7449697446425142561}
   beam: {fileID: 5011568333220698525}
   glowWhenOn: {fileID: 2307713132523915463}
+  startSwitchedOn: 1
+  switchOnSound: {fileID: 8300000, guid: 0abee885501543388ebcae7364cb4927, type: 3}
+  switchOffSound: {fileID: 8300000, guid: ffbeaf9c21dd49cc84e9c871cbc3bce3, type: 3}
+  switchVolume: 1

@@ -22,6 +22,8 @@ public class ItemInspector : MonoBehaviour
     public static ItemInspector Instance { get; private set; }
     public static bool IsOpen => Instance != null && Instance.state != State.Closed;
 
+    private AudioSource sfxSource;
+
     [Header("Look")]
     [SerializeField] private Color barColor = new Color(0f, 0f, 0f, 0.95f);
     [SerializeField] private Color backdropTint = new Color(0f, 0f, 0f, 0.55f);
@@ -533,6 +535,25 @@ public class ItemInspector : MonoBehaviour
             if (copy != null)
                 copy.gameObject.SetActive(active);
         }
+    }
+
+    /// <summary>
+    /// Plays a 2D sound for something happening in the inspect view. Plays from the inspector
+    /// itself because the real item is usually deactivated (hideWhileInspecting) while it's open,
+    /// and the inspected copy has its AudioSources stripped.
+    /// </summary>
+    public static void PlaySound(AudioClip clip, float volume = 1f)
+    {
+        if (Instance == null || clip == null)
+            return;
+
+        if (Instance.sfxSource == null)
+        {
+            Instance.sfxSource = Instance.gameObject.AddComponent<AudioSource>();
+            Instance.sfxSource.playOnAwake = false;
+            Instance.sfxSource.spatialBlend = 0f;
+        }
+        Instance.sfxSource.PlayOneShot(clip, volume);
     }
 
     /// <summary>Shows a short message in place of the item's description for a few seconds.</summary>

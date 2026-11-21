@@ -1529,10 +1529,13 @@ MonoBehaviour:
   playArea: {x: 0.85, y: 1}
   stackStep: 0.002
   dragLift: 0.02
+  rotateSound: {fileID: 8300000, guid: a7aa74c5a812476aab0518e3de3f53fe, type: 3}
+  rotateVolume: 1
+  rotatePitchJitter: 0.08
   focusFieldOfView: 40
   focusDuration: 0.4
   framingPadding: 0.1
-  controlsHint: Drag to move   |   Right-click or E to rotate   |   Q to rotate back  
+  controlsHint: Drag to move   |   Right-click or R to rotate   |   Q to rotate back  
     |   Esc to stand up
   solvedHint: Esc to stand up
   hintBarColor: {r: 0, g: 0, b: 0, a: 0.75}
@@ -3321,6 +3324,8 @@ MonoBehaviour:
   cameraFocusDuration: 0.4
   cameraFocusFieldOfView: 38
   closeDelayAfterUnlock: 0.75
+  keyPressSound: {fileID: 8300000, guid: 1a6da0016a36424096d465f9cbaba4bf, type: 3}
+  keyPressVolume: 1
   onUnlocked:
     m_PersistentCalls:
       m_Calls:
@@ -10850,8 +10855,12 @@ MonoBehaviour:
   unscrewTurns: 3
   unscrewDistance: 0.025
   unscrewDuration: 1
+  unscrewSound: {fileID: 8300000, guid: 0d535faf7cf14afb8874140f8ec2bfb4, type: 3}
+  unscrewVolume: 1
   cover: {fileID: 1792576319}
   coverFallDuration: 0.6
+  coverOffSound: {fileID: 8300000, guid: 162e06a28dfa49ddac2d499a14803aba, type: 3}
+  coverOffVolume: 1
   coverOffMessage: The cover's off. Click the opening to crawl in.
   opening: {fileID: 1973664781}
   sceneToLoad: Vent
@@ -11727,6 +11736,8 @@ MonoBehaviour:
   cameraFocusDuration: 0.4
   cameraFocusFieldOfView: 38
   closeDelayAfterUnlock: 0.75
+  keyPressSound: {fileID: 8300000, guid: 1a6da0016a36424096d465f9cbaba4bf, type: 3}
+  keyPressVolume: 1
   onUnlocked:
     m_PersistentCalls:
       m_Calls:
@@ -16008,6 +16019,8 @@ MonoBehaviour:
   - {fileID: 878670408}
   latchOpenAngle: -160
   latchOpenDuration: 0.35
+  latchSound: {fileID: 8300000, guid: b7042dee47d942d099dd6254fdc27d16, type: 3}
+  latchVolume: 1
   lidHinge: {fileID: 921989825}
   lidOpenAngle: 105
   lidOpenDuration: 0.8
@@ -20237,6 +20250,96 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &2026112001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2026112002}
+  - component: {fileID: 2026112004}
+  - component: {fileID: 2026112003}
+  m_Layer: 0
+  m_Name: WallRainbow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2026112002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026112001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 17.155, y: 4, z: -14}
+  m_LocalScale: {x: 4.4, y: 2.2, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!33 &2026112004
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026112001}
+  m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &2026112003
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2026112001}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 9a3fab36bedd4229a3059c6190514c0f, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -20269,3 +20372,4 @@ SceneRoots:
   - {fileID: 940020947}
   - {fileID: 1769803949}
   - {fileID: 1110192527}
+  - {fileID: 2026112002}

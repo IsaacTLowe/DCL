@@ -35,6 +35,11 @@ public class LockboxKeypadController : MonoBehaviour
     [Tooltip("Runs once when the right code is entered. Hook LockboxDoor.Unlock here.")]
     public UnityEvent onUnlocked;
 
+    [Header("Sound")]
+    [Tooltip("Played (2D) for each accepted key press: digits, CLR and ENTER, clicked or typed.")]
+    [SerializeField] private AudioClip keyPressSound;
+    [SerializeField, Range(0f, 1f)] private float keyPressVolume = 1f;
+
     public bool IsUnlocked => isUnlocked;
 
     /// <summary>The keypad that's open right now, or null. Only one keypad can be open at a time.</summary>
@@ -53,6 +58,7 @@ public class LockboxKeypadController : MonoBehaviour
     private Quaternion storedCameraRotation;
     private float storedCameraFieldOfView;
     private Coroutine cameraTransition;
+    private AudioSource audioSource;
 
     private void Awake()
     {
@@ -63,6 +69,10 @@ public class LockboxKeypadController : MonoBehaviour
             keypadCanvasGroup = keypadCanvas.GetComponent<CanvasGroup>();
 
         SetKeypadInputEnabled(false);
+
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 0f; // 2D: the camera is right up against the keypad
     }
 
     private void OnDisable()
@@ -103,6 +113,7 @@ public class LockboxKeypadController : MonoBehaviour
             return;
 
         enteredCode += digit[0];
+        PlayKeyPress();
         SetStatus("ENTER CODE");
         RefreshCodeDisplay();
     }
@@ -114,8 +125,15 @@ public class LockboxKeypadController : MonoBehaviour
             return;
 
         enteredCode = string.Empty;
+        PlayKeyPress();
         SetStatus("ENTER CODE");
         RefreshCodeDisplay();
+    }
+
+    private void PlayKeyPress()
+    {
+        if (keyPressSound != null)
+            audioSource.PlayOneShot(keyPressSound, keyPressVolume);
     }
 
     /// <summary>Bound to the ENTER button in the keypad Canvas.</summary>
@@ -124,6 +142,7 @@ public class LockboxKeypadController : MonoBehaviour
         if (!isOpen || !keypadInputEnabled || enteredCode.Length == 0)
             return;
 
+        PlayKeyPress();
         bool isCorrect = enteredCode == accessCode;
         SetStatus(isCorrect ? "ACCESS GRANTED" : "ACCESS DENIED");
 
