@@ -141,8 +141,8 @@ MonoBehaviour:
   visibleText: 
   hiddenText: 
   photo: {fileID: 0}
-  revealDistance: 1.2
-  fullRevealDistance: 0.7
+  revealDistance: 1.6
+  fullRevealDistance: 1
   fadeTime: 0.3
   visibleNumber: {fileID: 4146997247238074379}
   hiddenNumber: {fileID: 2871063015121709506}

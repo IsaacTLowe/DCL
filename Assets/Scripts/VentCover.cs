@@ -15,11 +15,17 @@ public class VentCover : MonoBehaviour
     [SerializeField, Min(0f)] private float unscrewTurns = 3f;
     [SerializeField, Min(0f)] private float unscrewDistance = 0.025f;
     [SerializeField, Min(0f)] private float unscrewDuration = 1f;
+    [Tooltip("Played (2D, through the ItemInspector) when a screw starts turning. Three squeaks, one per turn.")]
+    [SerializeField] private AudioClip unscrewSound;
+    [SerializeField, Range(0f, 1f)] private float unscrewVolume = 1f;
 
     [Header("Cover")]
     [Tooltip("The grille. Pops off and falls once all screws are out.")]
     [SerializeField] private Transform cover;
     [SerializeField, Min(0f)] private float coverFallDuration = 0.6f;
+    [Tooltip("Played (2D, through the ItemInspector) when the cover comes off.")]
+    [SerializeField] private AudioClip coverOffSound;
+    [SerializeField, Range(0f, 1f)] private float coverOffVolume = 1f;
     [SerializeField, TextArea(1, 3)] private string coverOffMessage = "The cover's off. Click the opening to crawl in.";
 
     [Header("Opening")]
@@ -57,6 +63,8 @@ public class VentCover : MonoBehaviour
 
     private void Unscrew(Transform screw)
     {
+        ItemInspector.PlaySound(unscrewSound, unscrewVolume);
+
         Vector3 startPosition = screw.localPosition;
         Quaternion startRotation = screw.localRotation;
         Vector3 outward = startRotation * Vector3.back;   // out of the wall, in the parent's space
@@ -82,6 +90,7 @@ public class VentCover : MonoBehaviour
         if (IsCoverOff)
             return;
         IsCoverOff = true;
+        ItemInspector.PlaySound(coverOffSound, coverOffVolume);
 
         if (cover == null)
         {

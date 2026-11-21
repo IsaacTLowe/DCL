@@ -28,6 +28,9 @@ public static class VigilToolboxVentSetup
     private const string VentScenePath = "Assets/Scenes/Vent.unity";
     private const string VentSceneName = "Vent";
     private const string ToolboxName = "Toolbox";
+    private const string LatchSoundPath = "Assets/Audio/toolbox-latch.mp3";
+    private const string UnscrewSoundPath = "Assets/Audio/screw-unscrew.mp3";
+    private const string CoverOffSoundPath = "Assets/Audio/vent-cover-off.mp3";
     private const string VentName = "CrawlVent";
     private const string ScrewdriverId = "screwdriver";
 
@@ -175,6 +178,10 @@ public static class VigilToolboxVentSetup
         boxSo.FindProperty("tool").objectReferenceValue = screwdriverPart;
         boxSo.FindProperty("toolItemId").stringValue = ScrewdriverId;
         boxSo.FindProperty("toolDisplayName").stringValue = "Screwdriver";
+        AudioClip latchClip = AssetDatabase.LoadAssetAtPath<AudioClip>(LatchSoundPath);
+        boxSo.FindProperty("latchSound").objectReferenceValue = latchClip;
+        if (latchClip == null)
+            log.AppendLine($"• Latch sound not found at {LatchSoundPath}; the latches will be silent.");
         boxSo.ApplyModifiedPropertiesWithoutUndo();
 
         log.AppendLine($"• Toolbox on the floor at ({ToolboxXZ.x}, {floorY:0.###}, {ToolboxXZ.y})" +
@@ -263,6 +270,14 @@ public static class VigilToolboxVentSetup
         ventSo.FindProperty("cover").objectReferenceValue = vent;
         ventSo.FindProperty("opening").objectReferenceValue = openingPart;
         ventSo.FindProperty("sceneToLoad").stringValue = VentSceneName;
+        AudioClip unscrewClip = AssetDatabase.LoadAssetAtPath<AudioClip>(UnscrewSoundPath);
+        ventSo.FindProperty("unscrewSound").objectReferenceValue = unscrewClip;
+        if (unscrewClip == null)
+            log.AppendLine($"• Unscrew sound not found at {UnscrewSoundPath}; the screws will be silent.");
+        AudioClip coverOffClip = AssetDatabase.LoadAssetAtPath<AudioClip>(CoverOffSoundPath);
+        ventSo.FindProperty("coverOffSound").objectReferenceValue = coverOffClip;
+        if (coverOffClip == null)
+            log.AppendLine($"• Cover-off sound not found at {CoverOffSoundPath}; the cover will fall silently.");
         ventSo.ApplyModifiedPropertiesWithoutUndo();
 
         Vector3 p = r.position;

@@ -9,7 +9,7 @@ using UnityEngine.UI;
 /// <summary>
 /// Torn-letter puzzle. Aim the crosshair at the letter and left-click to lean over the desk:
 /// the camera moves above the letter and the cursor unlocks. Left-drag a piece to move it,
-/// right-click or E to turn the piece under the mouse 90° clockwise, Q for counter-clockwise
+/// right-click or R to turn the piece under the mouse 90° clockwise, Q for counter-clockwise
 /// (works while dragging too), Esc to stand back up. When every piece snaps into
 /// place, the glow turns on and onSolved fires.
 /// Put this on the parent of the TornPiece quads, with the pieces laid out SOLVED in the editor.
@@ -37,6 +37,13 @@ public class LetterPuzzle : MonoBehaviour
     [Tooltip("How far the held piece floats above the others.")]
     [SerializeField, Min(0f)] private float dragLift = 0.02f;
 
+    [Header("Sound")]
+    [Tooltip("Played (2D) each time a piece is turned.")]
+    [SerializeField] private AudioClip rotateSound;
+    [SerializeField, Range(0f, 1f)] private float rotateVolume = 1f;
+    [Tooltip("Random pitch change per turn (±), so repeated turns don't sound identical.")]
+    [SerializeField, Range(0f, 0.3f)] private float rotatePitchJitter = 0.08f;
+
     [Header("Camera focus")]
     [SerializeField, Range(20f, 90f)] private float focusFieldOfView = 40f;
     [SerializeField, Min(0.05f)] private float focusDuration = 0.4f;
@@ -45,7 +52,7 @@ public class LetterPuzzle : MonoBehaviour
 
     [Header("Controls hint")]
     [SerializeField] private string controlsHint =
-        "Drag to move   |   Right-click or E to rotate   |   Q to rotate back   |   Esc to stand up";
+        "Drag to move   |   Right-click or R to rotate   |   Q to rotate back   |   Esc to stand up";
     [SerializeField] private string solvedHint = "Esc to stand up";
     [SerializeField] private Color hintBarColor = new Color(0f, 0f, 0f, 0.75f);
 
@@ -74,10 +81,15 @@ public class LetterPuzzle : MonoBehaviour
 
     private GameObject hintCanvas;
     private TMP_Text hintText;
+    private AudioSource audioSource;
 
     private void Awake()
     {
         GetComponentsInChildren(pieces);
+
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 0f; // 2D: the camera is right above the letter
         if (glow != null)
             glow.SetActive(false);
     }
@@ -130,9 +142,9 @@ public class LetterPuzzle : MonoBehaviour
         if (!inputEnabled)
             return;
 
-        // Turn input: right-click or E = clockwise, Q = counter-clockwise. 0 = no turn this frame.
+        // Turn input: right-click or R = clockwise, Q = counter-clockwise. 0 = no turn this frame.
         int turn = 0;
-        if (mouse.rightButton.wasPressedThisFrame || (keyboard != null && keyboard.eKey.wasPressedThisFrame))
+        if (mouse.rightButton.wasPressedThisFrame || (keyboard != null && keyboard.rKey.wasPressedThisFrame))
             turn = 1;
         else if (keyboard != null && keyboard.qKey.wasPressedThisFrame)
             turn = -1;
@@ -140,7 +152,10 @@ public class LetterPuzzle : MonoBehaviour
         if (held != null)
         {
             if (turn != 0)
+            {
                 held.RotateQuarterTurn(turn > 0);
+                PlayRotateSound();
+            }
 
             if (mouse.leftButton.isPressed)
                 DragHeld(mouse);
@@ -160,6 +175,7 @@ public class LetterPuzzle : MonoBehaviour
         if (turn != 0)
         {
             piece.RotateQuarterTurn(turn > 0);
+            PlayRotateSound();
             Restack(piece);
             TryPlace(piece);
         }
@@ -362,6 +378,15 @@ public class LetterPuzzle : MonoBehaviour
 
         position = transform.position + transform.up * height;
         rotation = Quaternion.LookRotation(-transform.up, transform.forward); // top of letter = top of screen
+    }
+
+    private void PlayRotateSound()
+    {
+        if (rotateSound == null)
+            return;
+
+        audioSource.pitch = 1f + Random.Range(-rotatePitchJitter, rotatePitchJitter);
+        audioSource.PlayOneShot(rotateSound, rotateVolume);
     }
 
     private void StartCameraTransition(Vector3 position, Quaternion rotation, float fieldOfView, System.Action onDone)

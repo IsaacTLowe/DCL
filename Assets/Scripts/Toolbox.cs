@@ -15,6 +15,9 @@ public class Toolbox : MonoBehaviour
     [SerializeField] private InspectPart[] latches;
     [SerializeField] private float latchOpenAngle = -160f;
     [SerializeField, Min(0f)] private float latchOpenDuration = 0.35f;
+    [Tooltip("Played (2D, through the ItemInspector) each time a latch is clicked open.")]
+    [SerializeField] private AudioClip latchSound;
+    [SerializeField, Range(0f, 1f)] private float latchVolume = 1f;
 
     [Header("Lid")]
     [Tooltip("Pivot on the lid's back edge. Rotates around its local X axis.")]
@@ -56,6 +59,8 @@ public class Toolbox : MonoBehaviour
 
     private void OpenLatch(Transform hinge)
     {
+        ItemInspector.PlaySound(latchSound, latchVolume);
+
         Quaternion closed = hinge.localRotation;
         ItemInspector.AnimateMirrored(hinge, latchOpenDuration,
             (t, k) => t.localRotation = closed * Quaternion.Euler(latchOpenAngle * k, 0f, 0f),
